@@ -1,0 +1,13 @@
+# build output
+build/
+build-*/
+*.o
+*.a
+
+# macOS
+.DS_Store
+*.dSYM/
+
+# local config and logs
+*.log
+oledguard.ini
