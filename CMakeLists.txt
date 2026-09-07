@@ -27,17 +27,29 @@ endif()
 
 if(WIN32)
 
+  # The icon, the version block and the manifest. The manifest is not optional
+  # polish: without it the process gets ComCtl32 v5 controls and no per-monitor
+  # DPI awareness. Regenerate the icon with packaging/windows/make_ico.py.
+  enable_language(RC)
+
   add_executable(oledguard WIN32
     src/platform/win32/og_plat_win32.c
-    src/platform/win32/og_ui_win32.c)
+    src/platform/win32/og_ui_win32.c
+    packaging/windows/oledguard.rc)
   target_link_libraries(oledguard PRIVATE og_core
-    user32 gdi32 shell32 comctl32 advapi32 ole32 shlwapi)
+    user32 gdi32 shell32 comctl32 advapi32 ole32 shlwapi uxtheme dwmapi uuid)
   target_compile_definitions(oledguard PRIVATE
     UNICODE _UNICODE _CRT_SECURE_NO_WARNINGS)
   if(MINGW)
     # MinGW's startup code only looks for wWinMain when -municode is on.
     target_compile_options(oledguard PRIVATE -municode)
     target_link_options(oledguard PRIVATE -municode -mwindows)
+  endif()
+  if(MSVC)
+    # The linker embeds a manifest of its own unless told not to, and two
+    # RT_MANIFEST resources with id 1 is a hard error (CVT1100). Ours, in
+    # oledguard.rc, is the one to keep: MinGW has no equivalent switch.
+    target_link_options(oledguard PRIVATE /MANIFEST:NO)
   endif()
 
 elseif(APPLE)

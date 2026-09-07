@@ -11,3 +11,7 @@ build-*/
 # local config and logs
 *.log
 oledguard.ini
+
+# release artefacts belong on the GitHub release page, not in the tree
+*.dmg
+*.zip

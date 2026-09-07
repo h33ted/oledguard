@@ -19,12 +19,15 @@ currently blanked](docs/settings-window.png)
 
 ## Project status
 
-macOS is the only target that is currently built and tested. Linux (X11,
-XRandR, XRender, GTK4) and Windows (GDI, Win32) backends are present in the tree
-and compile, but neither has been exercised on real hardware, so they are
-unreleased rather than supported. Both are intended to follow.
+macOS and Windows are both built, tested and released. The Windows backend has
+been exercised on x64 hardware; the ARM64 build compiles and is published, but
+has not been run on an ARM64 machine, so treat that slice as unverified.
 
-The portable core and its test suite build and pass on any of the three.
+Linux (X11, XRandR, XRender, GTK4) is present in the tree and compiles, but has
+not been exercised on real hardware, so it is unreleased rather than supported.
+It is intended to follow.
+
+The portable core and its test suite build and pass on all three.
 
 ## What it does
 
@@ -133,26 +136,47 @@ codesign --force --deep --sign "OLEDGuard Dev" build/oledguard.app
 
 The grant then survives rebuilds.
 
-## Building the other backends
+## Building on Windows
 
-Neither has been tested. Both are included so that the portable core can be
-verified against more than one platform.
+Requires CMake and the Visual Studio 2022 build tools with the Desktop
+development with C++ workload. The Visual Studio generator finds the compiler
+by itself, so no Developer Command Prompt is needed:
 
-Linux needs `libx11 libxrandr libxrender libxext libxss gtk4` and their
+```
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Release
+ctest --test-dir build -C Release
+```
+
+Substitute `-A ARM64` for an ARM64 build. The result is
+`build\Release\oledguard.exe`.
+
+The build compiles `packaging/windows/oledguard.rc`, which carries the icon,
+the version block and the application manifest. The manifest is not cosmetic:
+without it the process gets ComCtl32 v5 controls and no per-monitor DPI
+awareness, so the window is drawn at the wrong scale on anything but a 96 dpi
+display. Regenerate the icon with `packaging/windows/make_ico.py` after
+changing the artwork.
+
+MinGW also works, including as a cross-compile from Linux, using the included
+toolchain file:
+
+```sh
+cmake -S . -B build-win \
+      -DCMAKE_TOOLCHAIN_FILE=packaging/windows/mingw-toolchain.cmake
+cmake --build build-win -j
+```
+
+## Building on Linux
+
+Untested; included so the portable core can be checked against a third
+platform. Needs `libx11 libxrandr libxrender libxext libxss gtk4` and their
 development packages:
 
 ```sh
 sudo apt install cmake build-essential libx11-dev libxrandr-dev \
      libxrender-dev libxext-dev libxss-dev libgtk-4-dev
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
-```
-
-Windows builds with MSVC, or with MinGW using the included toolchain file:
-
-```sh
-cmake -S . -B build-win \
-      -DCMAKE_TOOLCHAIN_FILE=packaging/windows/mingw-toolchain.cmake
-cmake --build build-win -j
 ```
 
 ## Running
@@ -164,6 +188,10 @@ the rest: which screens to guard, the idle timeout, what counts as a wake event,
 how to treat applications asking to keep the display on, whether to appear in
 the Dock as well as the menu bar, and whether to open at login. Closing the
 window leaves the application running.
+
+On Windows it lives in the notification area and offers the same settings.
+Only one instance runs at a time; launching the executable again re-presents
+the existing window rather than starting a second copy.
 
 Settings are written to a plain INI file that can also be edited by hand:
 

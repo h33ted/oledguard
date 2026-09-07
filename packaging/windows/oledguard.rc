@@ -1,0 +1,45 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later
+ * Copyright (C) 2026 George
+ *
+ * The only resource script in the tree. It carries three things that cannot be
+ * set from code: the application icon, the version block Explorer reads, and
+ * the manifest that asks for themed controls and per-monitor DPI awareness.
+ *
+ * Regenerate oledguard.ico with: python3 packaging/windows/make_ico.py
+ */
+#include <windows.h>
+#include "../../src/platform/win32/og_resource.h"
+
+/* Lowest numbered icon in the file is the one Explorer uses for the exe. */
+IDI_OLEDGUARD ICON "oledguard.ico"
+
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "oledguard.exe.manifest"
+
+VS_VERSION_INFO VERSIONINFO
+  FILEVERSION     0,1,0,0
+  PRODUCTVERSION  0,1,0,0
+  FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+  FILEFLAGS       0
+  FILEOS          VOS_NT_WINDOWS32
+  FILETYPE        VFT_APP
+  FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"
+    BEGIN
+      VALUE "CompanyName",      "George"
+      VALUE "FileDescription",  "OLEDGuard - per-monitor OLED burn-in curtain"
+      VALUE "FileVersion",      "0.1.0.0"
+      VALUE "InternalName",     "oledguard"
+      VALUE "LegalCopyright",   "Copyright (C) 2026 George. GPL-3.0-or-later."
+      VALUE "OriginalFilename", "OLEDGuard.exe"
+      VALUE "ProductName",      "OLEDGuard"
+      VALUE "ProductVersion",   "0.1.0.0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END
