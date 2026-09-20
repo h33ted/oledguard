@@ -3,6 +3,9 @@
  */
 /* og_plat_win32.c - Windows backend: GDI capture, layered topmost curtains.
  *
+ * The curtain hides the pointer by owning the hit-test and answering
+ * WM_SETCURSOR with a null cursor; see curtain_proc.
+ *
  * Capture uses StretchBlt with HALFTONE straight into a 32x18 bitmap, so the
  * whole sample is one GDI call and 576 pixels come back. That covers windowed
  * and borderless-fullscreen content, which is what modern games and every
@@ -86,7 +89,16 @@ static LRESULT CALLBACK curtain_proc(HWND h, UINT msg, WPARAM wp, LPARAM lp)
     case WM_ERASEBKGND:
         return 1;   /* WM_PAINT does it all; this stops the flash */
     case WM_NCHITTEST:
-        return HTTRANSPARENT;
+        /* Own the hit-test. A window that is skipped by hit-testing never
+         * gets to say what the pointer looks like, so the arrow of whatever
+         * sits beneath the curtain would stay lit on top of the black. The
+         * pointer never moves while a curtain covers it (a move lifts it),
+         * so the only mouse input this ever absorbs is a click on a black
+         * screen. Keyboard input is unaffected: the window never activates. */
+        return HTCLIENT;
+    case WM_SETCURSOR:
+        SetCursor(NULL);   /* class cursor is NULL too; this makes it stick */
+        return TRUE;
     case WM_MOUSEACTIVATE:
         return MA_NOACTIVATE;
     }
@@ -487,8 +499,7 @@ int og_plat_overlay_show(og_monitor *m, int opacity_pct, int fade_ms)
 
     if (!ov->hwnd) {
         ov->hwnd = CreateWindowExW(
-            WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW |
-            WS_EX_LAYERED | WS_EX_TRANSPARENT,   /* TRANSPARENT: click-through */
+            WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_LAYERED,
             OG_OVERLAY_CLASS, L"", WS_POPUP,
             m->bounds.x, m->bounds.y, m->bounds.w, m->bounds.h,
             NULL, NULL, G.hinst, NULL);
@@ -557,5 +568,14 @@ void og_plat_pump(void)
         /* Some apps grab HWND_TOPMOST when they take focus; reassert quietly. */
         SetWindowPos(ov->hwnd, HWND_TOPMOST, 0, 0, 0, 0,
                      SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+        /* WM_SETCURSOR only arrives on pointer movement. A curtain that
+         * appears, or fades in, under a resting pointer gets none, so the
+         * old arrow would stay until the next move. Blank it directly. */
+        {
+            POINT p;
+            if (GetCursorPos(&p) && WindowFromPoint(p) == ov->hwnd)
+                SetCursor(NULL);
+        }
     }
 }
